@@ -9,19 +9,11 @@ Ideas for the control bits is remotely via phone/ipad using a web app, or using 
 
 ## Install directions
 
-Install raspbian on a rpi. 
+### Basics
 
-Set kiosk mode (as of May 2025, the officiasl kiosk mode rpi guide doesn't work).
+Install raspbian on a rpi. Use `raspi-config` under "Display" to make sure you're not running wayland.
 
-Add this to `/home/pi/.config/labwc/autostart`
+...
 
-```
-/home/pi/kiosk.sh
-```
 
-The `kiosk.sh` file looks like:
 
-```
-sleep 4
-/bin/chromium-browser  --kiosk --ozone-platform=wayland --start-maximized --noerrdialogs --disable-infobars --enable-features=OverlayScrollbar  http://localhost:8080/ &
-```
