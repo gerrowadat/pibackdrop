@@ -1,0 +1,38 @@
+<html>
+  <head><title>pibackdrop</title></head>
+  <body>
+    <style>
+      body {
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center;
+        background-color: black;
+      }
+    </style>
+    <script>
+      async function getCurrentBackground() {
+        const rep = await fetch("/c");
+        if (!rep.ok) {
+          throw new Error(`Status: ${response.status}`);
+        }
+        text = await rep.text();
+        return text.toString()
+      }
+
+      function setPageBackground(bg) {
+        console.log("Setting page background to /b?name=" + bg);
+        document.body.style.backgroundImage = "url('/b?name=" + bg + "')";
+      }
+
+      var current;
+      setInterval(function() {
+        getCurrentBackground().then((bg) => {
+          if (bg != current) {
+            setPageBackground(bg);
+            current = bg;
+          }
+        });
+      }, 1000);
+    </script>
+  </body>
+</html>

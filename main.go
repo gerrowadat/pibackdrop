@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"net/http"
@@ -21,6 +22,8 @@ var (
 	current Background
 	// mutex for current.
 	cm sync.Mutex
+	//go:embed index.html
+	indexHtml []byte
 )
 
 func init() {
@@ -51,8 +54,7 @@ func Backgrounds(datadir string) []Background {
 
 // HandleRoot handles the root URL.
 func HandleRoot(w http.ResponseWriter, r *http.Request) {
-	content := fmt.Sprintf("<html><body><style> body { background-image: url('/b?name=%v'); background-repeat: no-repeat; background-size: contain; background-position: center; background-color: black; }</style></body></html>", current.name)
-	fmt.Fprint(w, content)
+	w.Write(indexHtml)
 }
 
 // HandleAdmin handles the admin URL.
