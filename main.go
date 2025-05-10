@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-
-	"github.com/gorilla/websocket"
+	"sync"
 )
 
 type Background struct {
@@ -20,8 +19,8 @@ var (
 	bgs       []Background
 	// The current background
 	current Background
-	// A channel for background updates
-	cc chan string
+	// mutex for current.
+	cm sync.Mutex
 )
 
 func init() {
@@ -67,7 +66,9 @@ func HandleAdmin(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, bg := range bgs {
 			if bg.name == name {
-				UpdateCurrentBackground(bg)
+				cm.Lock()
+				defer cm.Unlock()
+				current = bg
 				break
 			}
 		}
@@ -93,47 +94,10 @@ func HandleBackground(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-func HandleWebSocketCurrent(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("WebSocket connection from %v\n", r.RemoteAddr)
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Println("Error upgrading connection:", err)
-		return
-	}
-	defer conn.Close()
-
-	err = conn.WriteJSON(current.name)
-	if err != nil {
-		fmt.Println("Error writing JSON:", err)
-		return
-	}
-
-	for {
-		fmt.Println("Waiting for background update...")
-		curr := <-cc
-		err = conn.WriteJSON(curr)
-		if err != nil {
-			fmt.Println("Error writing JSON:", err)
-			return
-		}
-	}
-}
-
-func UpdateCurrentBackground(newbg Background) {
-	select {
-	case cc <- newbg.name:
-		fmt.Printf("Background updated to %v\n", newbg.name)
-		current = newbg
-	default:
-		fmt.Println("Background update channel is full.")
-		return
-	}
+func HandleCurrent(w http.ResponseWriter, r *http.Request) {
+	cm.Lock()
+	defer cm.Unlock()
+	fmt.Fprint(w, current.name)
 }
 
 func main() {
@@ -149,17 +113,16 @@ func main() {
 	}
 	fmt.Printf("Total backgrounds: %v\n", len(bgs))
 
-	current = bgs[0]
-
-	cc = make(chan string, 1)
+	if len(bgs) > 0 {
+		current = bgs[0]
+	}
 
 	// The 'admin' page is for setting the background
 	http.HandleFunc("/a", HandleAdmin)
 	// The 'b' endpoint is for serving the background images
 	http.HandleFunc("/b", HandleBackground)
-	// The 'current' endpoint is for WebSocket connections
-	// It sends the current background name to the client as it is updated.
-	http.HandleFunc("/current", HandleWebSocketCurrent)
+	// Just sends the name of the current background.
+	http.HandleFunc("/c", HandleCurrent)
 	// The root endpoint serves the HTML page with the current background
 	http.HandleFunc("/", HandleRoot)
 
