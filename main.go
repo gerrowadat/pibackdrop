@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/websocket"
 )
 
 type Background struct {
@@ -13,15 +15,18 @@ type Background struct {
 }
 
 var (
-	fDataDir    string
-	fReloadFile string
-	bgs         []Background
-	current     Background
+	fDataDir  string
+	fHttpPort int
+	bgs       []Background
+	// The current background
+	current Background
+	// A channel for background updates
+	cc chan string
 )
 
 func init() {
 	flag.StringVar(&fDataDir, "datadir", "datadir", "directory with image files")
-	flag.StringVar(&fReloadFile, "reloadfile", "reloadplease", "file to touch when kioks should reload")
+	flag.IntVar(&fHttpPort, "port", 8080, "HTTP port to listen on")
 }
 
 // Backgrounds returns a slice of Background structs.
@@ -45,27 +50,10 @@ func Backgrounds(datadir string) []Background {
 	return bgs
 }
 
-func CreateReloadFile() {
-	if fReloadFile == "" {
-		return
-	}
-	if _, err := os.Stat(fReloadFile); os.IsNotExist(err) {
-		fmt.Printf("Creating reload file %v\n", fReloadFile)
-		f, err := os.Create(fReloadFile)
-		if err != nil {
-			fmt.Printf("Error creating reload file %v: %v", fReloadFile, err)
-			return
-		}
-		f.Close()
-	} else {
-		fmt.Printf("Reload file %v already exists\n", fReloadFile)
-	}
-}
-
 // HandleRoot handles the root URL.
 func HandleRoot(w http.ResponseWriter, r *http.Request) {
 	content := fmt.Sprintf("<html><body><style> body { background-image: url('/b?name=%v'); background-repeat: no-repeat; background-size: contain; background-position: center; background-color: black; }</style></body></html>", current.name)
-	fmt.Fprintf(w, content)
+	fmt.Fprint(w, content)
 }
 
 // HandleAdmin handles the admin URL.
@@ -79,9 +67,7 @@ func HandleAdmin(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, bg := range bgs {
 			if bg.name == name {
-				current = bg
-				fmt.Println("Set current background to", bg.name)
-				CreateReloadFile()
+				UpdateCurrentBackground(bg)
 				break
 			}
 		}
@@ -107,6 +93,49 @@ func HandleBackground(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func HandleWebSocketCurrent(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("WebSocket connection from %v\n", r.RemoteAddr)
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println("Error upgrading connection:", err)
+		return
+	}
+	defer conn.Close()
+
+	err = conn.WriteJSON(current.name)
+	if err != nil {
+		fmt.Println("Error writing JSON:", err)
+		return
+	}
+
+	for {
+		fmt.Println("Waiting for background update...")
+		curr := <-cc
+		err = conn.WriteJSON(curr)
+		if err != nil {
+			fmt.Println("Error writing JSON:", err)
+			return
+		}
+	}
+}
+
+func UpdateCurrentBackground(newbg Background) {
+	select {
+	case cc <- newbg.name:
+		fmt.Printf("Background updated to %v\n", newbg.name)
+		current = newbg
+	default:
+		fmt.Println("Background update channel is full.")
+		return
+	}
+}
+
 func main() {
 	flag.Parse()
 	fmt.Printf("Reading files from %v\n", fDataDir)
@@ -122,9 +151,19 @@ func main() {
 
 	current = bgs[0]
 
+	cc = make(chan string, 1)
+
+	// The 'admin' page is for setting the background
 	http.HandleFunc("/a", HandleAdmin)
+	// The 'b' endpoint is for serving the background images
 	http.HandleFunc("/b", HandleBackground)
+	// The 'current' endpoint is for WebSocket connections
+	// It sends the current background name to the client as it is updated.
+	http.HandleFunc("/current", HandleWebSocketCurrent)
+	// The root endpoint serves the HTML page with the current background
 	http.HandleFunc("/", HandleRoot)
 
-	http.ListenAndServe(":8080", nil)
+	fmt.Printf("Listening on port %d\n", fHttpPort)
+
+	http.ListenAndServe(fmt.Sprintf(":%d", fHttpPort), nil)
 }
