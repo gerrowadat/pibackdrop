@@ -11,7 +11,7 @@ Ideas for the control bits is remotely via phone/ipad using a web app, or using 
 
 Install raspbian on a rpi. Use `raspi-config` under "Display" to make sure you're running Wayfire/Wayland.
 
-Install extra wayfire plugins, like the one we use to hide the mouse cursor:
+Build and install extra wayfire plugins, like the one we use to hide the mouse cursor:
 ```
 sudo apt install libglibmm-2.4-dev libglm-dev libxml2-dev libpango1.0-dev libcairo2-dev wayfire-dev libwlroots-dev libwf-config-dev meson ninja-build libvulkan-dev cmake
 git clone https://github.com/seffs/wayfire-plugins-extra-raspbian && cd wayfire-plugins-extra-raspbian
@@ -32,7 +32,6 @@ panel = wfrespawn wf-panel-pi
 background = wfrespawn pcmanfm --desktop --profile LXDE-pi
 xdg-autostart = lxsession-xdg-autostart
 chromium = chromium-browser http://localhost:8080 --kiosk --noerrdialogs --disable-infobars --no-first-run --ozone-platform=wayland --enable-features=OverlayScrollbar --start-maximized
-reloader = /home/pi/pibackdrop-reloader.sh
 screensaver = false
 dpms = false
 
