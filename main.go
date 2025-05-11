@@ -24,6 +24,8 @@ var (
 	cm sync.Mutex
 	//go:embed index.html
 	indexHtml []byte
+	//go:embed admin.html
+	adminHtml []byte
 )
 
 func init() {
@@ -70,15 +72,30 @@ func HandleAdmin(w http.ResponseWriter, r *http.Request) {
 			if bg.name == name {
 				cm.Lock()
 				defer cm.Unlock()
+				fmt.Fprintf(w, "Setting background: %v\n", bg.name)
 				current = bg
-				break
+				return
 			}
 		}
+		fmt.Printf("Background not found: %s", name)
 	}
+
+	// No directives, spit ut our index.
+	w.Write(adminHtml)
+
+	fmt.Fprintln(w, "<div class='buttonGrid'>")
+
 	for _, bg := range bgs {
-		line := fmt.Sprintf("<a href=\"/b?name=%s\">%s</a> - <a href=\"/a?action=set&name=%s\">[set]</a><br/>", bg.name, bg.name, bg.name)
+		var line string
+		if bg.name == current.name {
+			line = fmt.Sprintf("<div id=\"%s-btn\" class=currentbutton onclick=\"updateBackgroundRequest('%s')\">%s</div>", bg.name, bg.name, bg.name)
+		} else {
+			line = fmt.Sprintf("<div id=\"%s-btn\" class=button onclick=\"updateBackgroundRequest('%s')\">%s</div>", bg.name, bg.name, bg.name)
+		}
 		fmt.Fprintln(w, line)
 	}
+
+	fmt.Fprintln(w, "</div></body></html>")
 }
 
 // HandleBackground handles the background URL.
