@@ -37,14 +37,22 @@ dpms = false
 
 ```
 
-Now, populate /home/pi/datadir with images. Reboot.
+Build the go binary and stick it somewhere (TODO: do a .deb for this or something). Make it run on boot.
+
+```
+go build main.go
+cp main ~/pibackdrop
+~/pibackdrop --datadir=/home/pi/datadir --port=8080
+```
+
+Now, populate /home/pi/datadir with images, named after what you'd like to see appear on a list of clicky buttons. Reboot.
 
 
 ## Usage
 
 Connect the Pi to an external HDMI source - I also have it connected to a waveshare screen that sits on my pedalboard so I can see what's supposed to be projected.
 
-Right now, the only way to control it is to connect to the same wifi and visit http://rpi:8080/a and click the 'set' links.
+Right now, the only way to control it is to connect to the same wifi and visit http://rpi:8080/a and click the buttons.
 
 Setting up the hotspot:
 
