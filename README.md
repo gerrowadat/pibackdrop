@@ -37,10 +37,10 @@ dpms = false
 
 ```
 
-Build the go binary and stick it somewhere (TODO: do a .deb for this or something). Make it run on boot.
+Install the go binary and stick it somewhere (TODO: do a .deb for this or something). Make it run on boot.
 
 ```
-go build main.go
+go install github.com/gerrowadat/pibackdrop@0.0.1
 cp main ~/pibackdrop
 ~/pibackdrop --datadir=/home/pi/datadir --port=8080
 ```
