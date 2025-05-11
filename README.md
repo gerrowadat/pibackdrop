@@ -43,6 +43,7 @@ Install the go binary and stick it somewhere (TODO: do a .deb for this or someth
 go install github.com/gerrowadat/pibackdrop@0.0.1
 cp main ~/pibackdrop
 ~/pibackdrop --datadir=/home/pi/datadir --port=8080
+# systemd fuckery goes here
 ```
 
 Now, populate /home/pi/datadir with images, named after what you'd like to see appear on a list of clicky buttons. Reboot.
