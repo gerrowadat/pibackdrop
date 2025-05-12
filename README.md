@@ -37,6 +37,13 @@ dpms = false
 
 ```
 
+If, like me, you're using a waveshare screen on the pi itself, you'll want to get a HDMI output to mirror it so you can stick the projector in one of these ports. Also add this to `~/.config/wayfire.ini`
+
+```
+[output:HDMI-A-1]
+mode = mirror DSI-1
+```
+
 Install the go binary and stick it somewhere (TODO: do a .deb for this or something). Make it run on boot.
 
 ```
